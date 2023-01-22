@@ -5,6 +5,8 @@
 > module Lect01 where
 > import Data.List
 
+:l file to load files
+
 Introduction to Haskell
 =======================
 
