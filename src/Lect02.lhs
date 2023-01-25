@@ -102,7 +102,7 @@ E.g., interpret the following functions that map from a `Bool` and a `Char` to a
 
 Functions of multiple arguments in Haskell are "curried". 
 
-  - What does this mean?
+  - What does this mean? - functions of n arguments are functions of 1 argument that return a function of n-1 arguments
   - What does this say about the associativity of `->`?
   - What does this say about the associativey of function application?
   - What happens if we "partially apply" a function of multiple arguments?
