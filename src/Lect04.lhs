@@ -59,10 +59,11 @@ E.g., for lists of characters (string), "...":
 
 E.g., for instances of `Enum`, [I..J] and [I,J..K] and [I..]; try:
 
-    [1..10]
+    [1..10]  ->  enumFromTo 1 10
 
     ['a'..'z']
 
+    Step by 2
     [2,4..10]
     
     [10,9..1]
@@ -90,22 +91,29 @@ Functions that construct lists typically:
 
 E.g., implement the following list construction functions:
 
+
 > replicate' :: Int -> a -> [a]
-> replicate' = undefined
->
+> replicate' 0 _ = []
+> replicate' n a = a : replicate' (n-1) a
+
+
 > enumFromTo' :: (Ord a, Enum a) => a -> a -> [a]
-> enumFromTo' = undefined
->
-> -- and now for some infinite lists
->
+> enumFromTo' a b | a > b     = []
+>                 | otherwise = a : enumFromTo' (succ a) b
+
+
+Now for some infinite lists
+
 > ones :: [Int]
-> ones = undefined
-> 
+> ones = 1 : ones
+
+
 > repeat' :: a -> [a]
-> repeat' = undefined
->
+> repeat' x = x : repeat' x
+
+
 > enumFrom' :: Enum a => a -> [a]
-> enumFrom' = undefined
+> enumFrom' x = x : enumFrom' (succ x)
 
 
 Note: use `take` to limit the number of values drawn from an infinite list
@@ -129,24 +137,29 @@ Syntax:
 E.g.,
 
 > evens = [2*x | x <- [1..]]
->
+
 > evens' = [x | x <- [1..], x `mod` 2 == 0]
->
+
 > integerRightTriangles p = [(a,b,c) | a <- [1..p], 
 >                                      b <- [a..(p-a)],
 >                                      let c = p-(a+b),
 >                                      a^2 + b^2 == c^2]
 
+
 E.g., try implementing:
 
 > factors :: Integral a => a -> [a]
-> factors = undefined
->
+> factors n = [f | f <- [2..n `div` 2], n `mod` f == 0]
+
+
 > cartesianProduct :: [a] -> [b] -> [(a,b)]
-> cartesianProduct = undefined
->
+> cartesianProduct a b = [(x, y) | x <- a, y <- b] -- order matters!
+
+
 > concat' :: [[a]] -> [a]
-> concat' = undefined
+> concat' a = [x | b <- a, x <- b] -- order matters
+
+concat: Take every list from list of lists then take every element from that list.
 
 
 Common list functions
@@ -208,14 +221,17 @@ value constructors can be used for pattern matching).
 
 E.g., implement:
 
-> head' :: [a] -> a
-> head' = undefined
->
-> tail' :: [a] -> [a]
-> tail' = undefined
-> 
+> head' :: [a] -> a -- car
+> head' (x:_) = x
+
+
+> tail' :: [a] -> [a] -- cdr
+> tail' (_:xs) = xs
+
+
 > null' :: [a] -> Bool
-> null' = undefined
+> null' [] = True
+> null' _  = False
 
 
 -- Structural recursion
@@ -243,14 +259,15 @@ E.g., to compute the length of a list:
 
 E.g., implement more built-in functions:
 
-> last' :: [a] -> a
-> last' = undefined
->
->
-> (+++) :: [a] -> [a] -> [a]
-> (+++) = undefined
->
->
+> last' :: [a] -> a -- Get the last element
+> last' [x] = x
+> last' (_:xs) = last' xs
+
+
+> (+++) :: [a] -> [a] -> [a] -- Concatenate
+> [] +++ ys = ys
+> (x:xs) +++ ys = x : xs +++ ys
+
 > (!!!) :: [a] -> Int -> a -- the ! in its name is an implicit warning as to its inefficiency!
 > (!!!) = undefined
 >
