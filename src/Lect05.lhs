@@ -106,7 +106,7 @@ E.g., let's write a specification for `c2k`, `c2f`, `f2c`:
 
 \begin{code}
 c2k :: (Ord a, Floating a) => a -> a
-c2k c | c >= 0 = c + 273.15
+c2k c | c >= -273.15 = c + 273.15
       | otherwise = error "Temperature below absolute zero"
 
 
@@ -123,15 +123,28 @@ celsiusConversionSpec =
   describe "Celsius conversions" $ do
     describe "c2k" $ do
       it "works for known examples" $ do
-        pending
+        c2k 0 `shouldBe` 273.15
+        c2k 100 `shouldBe` 373.15
+        c2k (-100) `shouldSatisfy` (~= 173.15)
       it "fails for sub-abs-zero temperatures" $ do
         pending
+
     describe "c2f" $ do
       it "works for known examples" $ do
-        pending
+        c2f 0 `shouldBe` 32
+        c2f 100 `shouldBe` 212
+        c2f (-40) `shouldBe` -40
     describe "f2c" $ do
+
       it "works for known examples" $ do
-        pending
+        f2c 32 `shouldBe` 0
+        f2c 212 `shouldBe` 100
+        f2c 1001.1 `shouldSatisfy` (~= 538.38888) 
+
+infix 4 ~=
+(~=) :: (Floating a, Ord a) => a -> a -> Bool
+x ~= y = abs (x - y) < 0.001
+
 \end{code}
 
 
@@ -150,13 +163,22 @@ quadRootsSpec :: Spec
 quadRootsSpec = 
   describe "quadRoots" $ do
     it "works for known examples" $ do
-      pending
+      quadRoots 1 (-3) 2 `shouldMatchTuple` (2.0,1.0)
+      quadRoots 1 0 (-1) `shouldMatchTuple` (1.0,-1.0)
+      quadRoots 1 (-7) 12 `shouldMatchTuple` (3,4)
+      quadRoots 1 (-1) (-6) `shouldMatchTuple` (-2,3)
     it "fails when non-real roots exist" $ do
       pending
+
+shouldMatchTuple :: (Eq a, Show a) => (a, a) -> (a, a) -> Expectation
+shouldMatchTuple (x1,x2) (y1,y2) = [x1,x2] `shouldMatchList` [y1,y2]
+
 \end{code}
 
 
+
 Discussion: what are some problems / shortcomings of example-based testing?
+- Doesnt document the thing it's trying to test
 
 
 Property-based tests with QuickCheck
