@@ -33,39 +33,52 @@ a list element by element. Sometimes, iteration is used to "reduce" an input to 
 E.g., implement the following functions using iteration/reduction:
 
 \begin{code}
+
 -- a classic!
 factorial :: Integer -> Integer
-factorial = undefined
+factorial 1 = 1
+factorial n = n * factorial (n-1)
 
 
 -- sum up the elements of a list
 sumList :: (Show a, Num a) => [a] -> a
-sumList = undefined
+sumList [] = 0
+sumList (x:xs) = x + sumList xs
 
 
 -- sometimes we iterate over lists in parallel
 weightedSum :: (Show a, Num a) => [a] -> [a] -> a
-weightedSum = undefined
+weightedSum [] [] = 0
+weightedSum (v:vs) (w:ws) = v * w + weightedSum vs ws
 
 
 -- sometimes we process more than one "item" at a time
+-- swap adjacent letters
 swapLetters :: String -> String
-swapLetters = undefined
+swapLetters "" = ""
+swapLetters [x] = [x]
+swapLetters (x:y:xs) = y : x : swapLetters xs
 
 
 -- implement this using append (++)
+-- generates infinite repetitions of a list 
 cycle' :: [a] -> [a]
-cycle' = undefined
+cycle' a = a ++ cycle' a
 
 
 -- can we do better? (why is it better?)
 cycle'' :: [a] -> [a]
-cycle'' = undefined
+cycle'' l = cyc l
+  where cyc [] = cycle'' l
+        cyc (x:xs) = x : cyc xs
 
 
 -- we'll need to pass values into subsequent iterations to track progress
 fibs :: [Integer]
-fibs = undefined
+fibs = f 0 1
+  where f x y = x : f y (x+y)
+
+
 \end{code}
 
 
@@ -76,12 +89,16 @@ Filtering is the process of iterating over a list and processing only those elem
 \begin{code}
 -- sum only the positive numbers in a list
 sumPositives :: Integral a => [a] -> a
-sumPositives = undefined
+sumPositives [] = 0
+sumPositives (x:xs) = (if x > 0 then x else 0) + sumPositives xs
 
 
 -- palindroms are strings that read the same forwards as backwards
 palindromes :: [String] -> [String]
-palindromes = undefined
+palindromes [] = []
+palindromes (w:ws) = (if reverse w == w then (w:) else id) (palindromes ws)
+
+
 \end{code}
 
 
@@ -91,25 +108,36 @@ Combinations and permutations are classic problems in combinatorics that arise
 in many different problems.
 
 \begin{code}
+
 -- generate all combinations (order doesn't matter -- how many are there?)
 combinations :: [a] -> [[a]]
-combinations = undefined
+combinations [] = [[]]
+combinations (x:xs) =  [ x:ys | ys <- combinations xs ] ++ combinations xs
 
 
 -- generate all combinations of a given size (nCr = n!/(r!(n-r)!))
 combinations' :: Int -> [a] -> [[a]]
-combinations' = undefined
+combinations' 0 _  = [[]]
+combinations' _ [] = []
+combinations' n (x:xs) = [ x:ys | ys <- combinations' (n-1) xs ] ++ combinations' n xs
 
 
 -- the "making change" problem
 change :: (Ord a, Num a) => a -> [a] -> [[a]]
-change = undefined
+change 0 _  = [[]]
+change _ [] = []
+change amt den@(d:ds)
+  | amt < d = change amt ds
+  | otherwise = [ d:es | es <- change (amt-d) den ] ++ change amt ds 
 
 
 -- the knapsack problem: given a list of items (value,weight) and a weight 
 -- capacity, find the maximum value that can be carried
 knapsack :: (Ord a, Num a) => a -> [(a,a)] -> a
-knapsack = undefined
+knapsack _ [] = 0
+knapsack wcap ((v,w):is)
+  | w > wcap  = knapsack wcap is
+  | otherwise = max (v + knapsack (wcap - w) is) (knapsack wcap is)
 
 
 -- find the actual set of items that maximizes value (under the weight cap)
