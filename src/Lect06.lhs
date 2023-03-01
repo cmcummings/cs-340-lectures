@@ -170,7 +170,9 @@ obtain a solution to the original problem.
 \begin{code}
 -- a classic!
 fib :: Integral a => a -> a
-fib = undefined
+fib 0 = 0
+fib 1 = 1
+fib n = fib (n-1) + fib (n-2)
 
 
 -- sort by splitting the list in half and merging the sorted halves
@@ -203,35 +205,60 @@ parameter to the recursive call that accumulates the solution.
 \begin{code}
 -- are all elements even?
 allEven :: [Integer] -> Bool
-allEven = undefined
+allEven [] = True
+allEven (x:xs) = even x && allEven xs
 
 
 -- are two lists the same length?
 sameLength :: [a] -> [b] -> Bool
-sameLength = undefined
+sameLength [] [] = True
+sameLength _  [] = False
+sameLength [] _  = False
+sameLength (_:xs) (_:ys) = sameLength xs ys
 
 
 -- tail recursive factorial with explicit accumulator
 factorial' :: Integer -> Integer -> Integer
-factorial' = undefined
+factorial' 1 acc = acc
+factorial' n acc = factorial' (n-1) (acc*n)
 
 
 -- tail recursive factorial with hidden accumulator
 factorial'' :: Integer -> Integer
-factorial'' = undefined
+factorial'' n = f 1 1
+  where f m r | m == n = r*n
+              | otherwise = f (m+1) (r*m) 
 
 
 -- reverse a list using an accumulator
 reverse' :: [a] -> [a]
-reverse' = undefined
+reverse' l = rev l []
+  where rev [] r = r
+        rev (x:xs) r = rev xs (x:r)
 
 
 -- enumerate the integers from m to n (with an accumulator)
 enumFromTo' :: Integer -> Integer -> [Integer]
-enumFromTo' = undefined
+-- enumFromTo' m n | m > n = []
+--                 | m == n = [m]
+--                 | otherwise = m : enumFromTo' (m+1) n 
+
+enumFromTo' m n = f m []
+  where f i r | i == n = reverse (n:r)
+              | otherwise = f (i+1) (i:r)
+
+-- Don't need reverse in this example,
+-- But other examples of tail recursion / accumulation may need reverse
+enumFromTo'' m n = f n []
+  where f i r | i == m = m:r
+              | otherwise = f (i-1) (i:r)
 
 
 -- can we write the infinite list version using an accumulator?
+-- No, because we never return from the accumulation
 enumFrom' :: Integer -> [Integer]
-enumFrom' = undefined
+enumFrom' n = f n []
+  where f i r = f (i+1) (n:r)
+
+
 \end{code}
