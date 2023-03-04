@@ -41,7 +41,7 @@ Basic combinators
 \begin{code}
 ($) :: (a -> b) -> a -> b
 infixr 0 $
-($) = undefined
+f $ x = f x
 \end{code}
 
 It seems redundant (why?), but is quite useful in practice!
@@ -62,7 +62,7 @@ E.g., how can we rewrite the following expresions?
 \begin{code}
 (.) :: (b -> c) -> (a -> b) -> a -> c
 infixr 9 .
-(.) = undefined
+f . g = \x -> f (g x)
 \end{code}    
 
 E.g., re-implement `even'`, `k2h`, and `strip` with composition:
@@ -144,7 +144,9 @@ E.g.,
 
 \begin{code}
 filter :: (a -> Bool) -> [a] -> [a]
-filter = undefined
+filter _ [] = []
+filter p (x:xs) | p x = x : filter p xs
+                | otherwise = filter p xs
 \end{code}                 
 
 
@@ -171,10 +173,14 @@ E.g.,
 
 \begin{code}
 all :: (a -> Bool) -> [a] -> Bool
-all = undefined
+all _ [] = True
+all p (x:xs) | p x = all p xs
+             | otherwise = False
 
 any :: (a -> Bool) -> [a] -> Bool
-any = undefined
+any _ [] = False
+any p (x:xs) | p x = True
+             | otherwise = any p xs
 \end{code}
 
 E.g.,
@@ -200,6 +206,7 @@ sort (x:xs) = sort [y | y <- xs, y < x]
 
 sortBy :: (a -> a -> Ordering) -> [a] -> [a]
 sortBy = undefined
+
 \end{code}
 
 E.g.,
@@ -230,12 +237,21 @@ showCat (x:xs) = ((++) . show) x $ showCat xs
 
 What is the essential pattern here?
 
+- The input type is a list, [a]
+- The return type is something else, b
+- The base case returns some fixed value of type b
+- The recursive case applies a "combiner function" 
+  to the first element of the list (type a) and 
+  then to the recursive call on the rest of the list (type b)
+- The combiner function has type a -> b -> b
 
 
 Write the HOF that captures this pattern:
 
 \begin{code}
-foldr = undefined
+foldr :: (a -> b -> b) -> b -> [a] -> b
+foldr _ v [] = v
+foldr f v (x:xs) = f x $ foldr f v xs
 \end{code}
 
 
@@ -250,27 +266,30 @@ Let's define some recursive functions in terms of foldr:
 
 \begin{code}
 and' :: [Bool] -> Bool
-and' = undefined
+and' = foldr (&&) True
 
 
 showCat' :: Show a => [a] -> String
-showCat' = undefined
+showCat' = foldr ((++) . show) ""
 
 
 (+++) :: [a] -> [a] -> [a]
-l1 +++ l2 = undefined
+l1 +++ l2 = foldr (:) l2 l1
 
 
 length' :: [a] -> Int
-length' = undefined
+length' = foldr (\_ l -> 1 + l) 0
 
 
 map' :: (a -> b) -> [a] -> [b]
-map' f = undefined
+map' f = foldr ((:) . f) []
 
 
 filter' :: (a -> Bool) -> [a] -> [a]
-filter' p = undefined
+filter' p = foldr f []
+  where f x r | p x = x : r 
+              | otherwise = r
+
 \end{code}
 
 
@@ -329,12 +348,17 @@ playMoves board (m:moves) = playMoves (move board m) moves
 
 How is the pattern different from before?
 
-
+- The recursive call is in the tail position
+- The base case returns the accumulated value 
+- The combiner function takes the accumulator and an element and returns 
+  a new result (this result is passed into the recursive call)
 
 Write the HOF that captures this pattern:
 
 \begin{code}
-foldl = undefined
+foldl :: (b -> a -> b) -> b -> [a] -> b
+foldl _ acc [] = acc
+foldl f acc (x:xs) = foldl f (f acc x) xs
 \end{code}
 
 
