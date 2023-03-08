@@ -252,6 +252,9 @@ Write the HOF that captures this pattern:
 foldr :: (a -> b -> b) -> b -> [a] -> b
 foldr _ v [] = v
 foldr f v (x:xs) = f x $ foldr f v xs
+
+iter11 x (b,r) = if b then (not b, x:r) else (not b, r++[x])
+
 \end{code}
 
 
@@ -373,11 +376,12 @@ Let's define some recursive functions in terms of foldl:
 
 \begin{code}
 hash' :: String -> Integer
-hash' = undefined
-
+hash' = foldl h 107 
+  where h v c = (7*v `xor` fromIntegral (ord c)) `mod` 1000007
 
 playMoves' :: [(Int,Char)] -> [Char]
-playMoves' = undefined
+playMoves' = foldl move "-------------" 
+  where move board (x,y) = take x board ++ [y] ++ drop (x+1) board
 \end{code}
 
 
@@ -396,12 +400,16 @@ foldlT f v (x:xs) = let e  = trace ("<" ++ show x ++ ">") x
 Experiment with the following to answer these questions:
 
 - In what order are the input list elements evaluated?
+Left to right
 
 - When is the combining function applied?
+After recursing to the end of the list. The function is lazily evaluated
 
 - Does the left fold work on infinite lists? Why or why not?
+No, because we need to get to the bottom of the hill first
 
 - How might we make the left fold more efficient?
+Force strict evaluation
 
 \begin{verbatim}
 foldlT (+) 0 [1..10]
@@ -426,7 +434,10 @@ Write a stricter (traced) version of the left fold:
 
 \begin{code}
 foldlTS :: (Show a, Show b) => (b -> a -> b) -> b -> [a] -> b
-foldlTS = undefined
+foldlTS f v (x:xs) = let e  = trace ("<" ++ show x ++ ">") x
+                         a  = f v e
+                         a' = trace ("<<" ++ show a ++ ">>") a
+                     in trace "R" $ a' `seq` foldlTS f a' xs
 \end{code}
 
 E.g., try `foldlTS (+) 0 [1..10]` and `foldlTS (flip (:)) [] [1..10]`
@@ -449,14 +460,14 @@ E.g.,
 
 \begin{code}
 foldr1 :: (a -> a -> a) -> [a] -> a
-foldr1 = undefined
+foldr1 f (x:xs) = foldr f x xs 
 
 -- e.g., foldr1 (*) [1..5]
 --       foldr1 (^) [2,2,3]
 
 
 foldl1 :: (a -> a -> a) -> [a] -> a
-foldl1 = undefined
+foldl1 f (x:xs) = foldl f x xs 
 
 -- e.g., foldl1 (++) [[1,2], [3,4], [5,6]]
 --       foldl1 (/) [16,2,4]
@@ -484,7 +495,7 @@ of repeated applications of the function to the initial value.
 
 \begin{code}
 iterate :: (a -> a) -> a -> [a]
-iterate = undefined
+iterate f x = x : iterate f (f x) 
 
 -- e.g., take 10 $ iterate (*2) 1
 \end{code}
@@ -495,7 +506,8 @@ satisfies the predicate when repeatedly applied to the function.
 
 \begin{code}
 until :: (a -> Bool) -> (a -> a) -> a -> a
-until = undefined
+until p f x | p x = x 
+            | otherwise = until p f (f x)
 
 -- e.g., until (> 100) (*2) 1
 -- e.g., let n = 2 in until (\x -> abs (n-x*x) < 0.001) (\x -> (x + n/x) / 2) 1
