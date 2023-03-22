@@ -406,7 +406,7 @@ Left to right
 After recursing to the end of the list. The function is lazily evaluated
 
 - Does the left fold work on infinite lists? Why or why not?
-No, because we need to get to the bottom of the hill first
+No, because we need to get to the bottom of the hill first before returning
 
 - How might we make the left fold more efficient?
 Force strict evaluation

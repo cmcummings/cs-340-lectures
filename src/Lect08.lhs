@@ -63,15 +63,16 @@ We can pattern match on value constructors. Implement:
 
 \begin{code}
 not' :: YesOrNo -> YesOrNo
-not' = undefined
+not' Yes = No
+not' No = Yes
 
 
 (|||) :: YesOrNo -> YesOrNo -> YesOrNo
-(|||) = undefined
-
+No ||| No = No
+_ ||| _ = Yes
 
 or' :: [YesOrNo] -> YesOrNo
-or' = undefined
+or' = foldr (|||) No
 \end{code}
 
 ---
@@ -96,10 +97,10 @@ Use pattern matching to write some Box functions:
 
 \begin{code}
 boxStr :: Box -> String
-boxStr = undefined
+boxStr (Box _ _ s) = s
 
 boxCombine :: Box -> Box -> Box
-boxCombine = undefined
+boxCombine (Box n1 b1 s1) (Box n2 b2 s2) = Box (n1+n2) (b1 && b2) (s1 ++ s2)
 \end{code}
 
 ---
@@ -119,7 +120,9 @@ and extract their fields. Try implementing:
 
 \begin{code}
 area :: Shape -> Double
-area = undefined
+area (Circle r) = pi * r * r
+area (Triangle h b) = h * b / 2
+area (Rectangle l w) = l * w
 \end{code}
 
 ---
@@ -218,7 +221,9 @@ Write a function to return the message in the innermost non-empty doll:
 
 \begin{code}
 innerMostMessage :: RussianDoll -> String
-innerMostMessage = undefined
+innerMostMessage EmptyDoll = error "No empty dolls!"
+innerMostMessage (RussianDoll m EmptyDoll) = m
+innerMostMessage (RussianDoll _ d) = innerMostMessage d
 \end{code}
 
 
@@ -226,7 +231,9 @@ Write a function to reverse the order of messages in a doll:
 
 \begin{code}
 reverseMessages :: RussianDoll -> RussianDoll
-reverseMessages = undefined
+reverseMessages d = rev d EmptyDoll
+  where rev EmptyDoll acc = acc
+        rev (RussianDoll m d) acc = rev d (RussianDoll m acc)
 \end{code}
 
 
@@ -263,11 +270,13 @@ E.g., define some some functions on `UniversalBox` values:
 
 \begin{code}
 catBoxes :: UniversalBox [a] -> UniversalBox [a] -> UniversalBox [a]
-catBoxes = undefined
+catBoxes (UBox xs) (UBox ys) = UBox (xs ++ ys) 
 
 
 sumBoxes :: Num a => [UniversalBox a] -> UniversalBox a
-sumBoxes = undefined
+sumBoxes [] = UBox 0
+sumBoxes ((UBox n):bs) = let UBox r = sumBoxes bs 
+                         in UBox (r + n)
 \end{code}
 
 
