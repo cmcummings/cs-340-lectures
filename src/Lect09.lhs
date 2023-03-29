@@ -44,7 +44,7 @@ We can make a list a Functor, where `fmap` is identical to `map`
 \begin{code}
 instance Functor [] where
   fmap :: (a -> b) -> [a] -> [b]
-  fmap = undefined
+  fmap = map
 \end{code}
 
 Note that the implied type of `fmap` in the instance (replacing `f` from the
@@ -236,10 +236,12 @@ represent?
 \begin{code}
 instance Applicative [] where
   pure :: a -> [a]
-  pure = undefined
+  pure = repeat
   
   (<*>) :: [a -> b] -> [a] -> [b]
-  (<*>) = undefined
+  [] <*> _ = []
+  _ <*> [] = []
+  (f:fs) <*> (x:xs) = f x : (fs <*> xs)
 \end{code}
 
 Try:
