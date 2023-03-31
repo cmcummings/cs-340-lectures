@@ -67,7 +67,8 @@ Let's define `fmap` for the Maybe type:
 \begin{code}
 instance Functor Maybe where
   fmap :: (a -> b) -> Maybe a -> Maybe b
-  fmap = undefined
+  fmap _ Nothing = Nothing
+  fmap f (Just x) = Just (f x)
 \end{code}
 
 we can now do:
@@ -199,10 +200,10 @@ Let's make `Maybe` an Applicative instance:
 \begin{code}
 instance Applicative Maybe where
   pure :: a -> Maybe a
-  pure = undefined
+  pure = Just
   
   (<*>) :: Maybe (a -> b) -> Maybe a -> Maybe b
-  (<*>) = undefined
+  _ <*> _ = Nothing
 \end{code}
 
 
@@ -265,14 +266,14 @@ Now we can make `NDList` an instance of Functor and Applicative:
 \begin{code}
 instance Functor NDList where
   fmap :: (a -> b) -> NDList a -> NDList b
-  fmap = undefined
+  fmap f (NDList l) = NDList $ f <$> l
 
 instance Applicative NDList where
   pure :: a -> NDList a
-  pure = undefined
+  pure x = NDList [x]
   
   (<*>) :: NDList (a -> b) -> NDList a -> NDList b
-  (<*>) = undefined
+  NDList fs <*> NDList xs = NDList $ [f x | f <- fs, x <- xs]
 \end{code}
 
 
@@ -296,10 +297,10 @@ We can also make a function an Applicative:
 \begin{code}
 instance Applicative ((->) a) where
   pure :: b -> (a -> b)
-  pure = undefined
+  pure = const
 
   (<*>) :: (a -> (b -> c)) -> (a -> b) -> (a -> c)
-  (<*>) = undefined
+  f <*> g = \x -> f x (g x)
 \end{code}
 
 What does this do?
@@ -375,7 +376,8 @@ Let's make `Maybe` a Monad instance:
 \begin{code}
 instance Monad Maybe where
   (>>=) :: Maybe a -> (a -> Maybe b) -> Maybe b
-  (>>=) = undefined
+  Nothing >>= _ = Nothing
+  Just x  >>= f = f x
 \end{code}
 
 Now we get sensible results by doing:
@@ -412,14 +414,24 @@ Without bind, we might write:
 
 \begin{code}
 fDivs :: Integral a => a -> a -> a -> a -> a -> a -> Maybe a
-fDivs a b c d e f = undefined
+fDivs a b c d e f = 
+  case a `safeDiv` b of 
+    Nothing -> Nothing
+    Just r -> case c `safeDiv` d of
+      Nothing -> Nothing
+      Just r' -> case (r + r') `safeDiv` e of
+        Nothing -> Nothing
+        Just r'' -> Just $ r'' * f
 \end{code}
 
 Or we can use our bind operator:
 
 \begin{code}
 fDivs' :: Integral a => a -> a -> a -> a -> a -> a -> Maybe a
-fDivs' a b c d e f = undefined
+fDivs' a b c d e f = a `safeDiv` b >>= \r -> 
+                     c `safeDiv` d >>= \r' ->
+                     (r + r') `safeDiv` e >>= \r'' ->
+                     return $ r'' * f
 \end{code}
 
 Explain how this works!
