@@ -22,6 +22,7 @@ import System.IO
 import System.Console.ANSI
 import Control.Concurrent
 import GHC.IO
+import Debug.Trace
 \end{code}
 
 
@@ -112,7 +113,8 @@ adjLocs (w, h) (x, y) =
 -- connects two adjacent locations in the maze by inserting them into
 -- each others' lists in the adjacency map
 openWall :: MazeLoc -> MazeLoc -> Maze -> Maze
-openWall l1 l2 mz@(Maze _ _ cmap) = undefined
+openWall l1 l2 mz@(Maze _ _ cmap) = 
+  mz { mazeAdjMap = insertWith (++) l2 [l1] $ insertWith (++) l1 [l2] cmap }
 \end{code}
 
 
@@ -160,7 +162,10 @@ Let's write a function that generates three random integers in a range (using `r
 
 \begin{code}
 threeRandomInts :: RandomGen g => (Int,Int) -> g -> (Int, Int, Int)
-threeRandomInts range g = undefined
+threeRandomInts range g = let (v1, g') = randomR range g 
+                              (v2, g'') = randomR range g'
+                              (v3, _) = randomR range g''
+                          in (v1, v2, v3)
 \end{code}
 
 How do we use `threeRandomInts` with `newStdGen`, and what is the result type?
@@ -183,15 +188,25 @@ put s = State $ \_ -> ((), s)
 Implement the function `getRandom` uses the `RandomGen` in the `State` monad to generate a random value in the specified range:
 
 \begin{code}
+
 getRandom :: (Int, Int) -> State StdGen Int
-getRandom range = undefined
+getRandom range = do
+  g <- get
+  let (v, g') = randomR range g
+  put g'
+  return v
+
 \end{code}
 
 Now we can use `getRandom` to generate three random integers:
 
 \begin{code}
 threeRandomInts' :: (Int,Int) -> State StdGen (Int, Int, Int)
-threeRandomInts' range = undefined
+threeRandomInts' range = do
+  v1 <- getRandom range
+  v2 <- getRandom range
+  v3 <- getRandom range
+  return (v1,v2,v3)
 \end{code}
 
 
@@ -207,7 +222,12 @@ Write a function that uses the `State` monad to shuffle a list:
 \begin{code}
 
 getShuffled :: [a] -> State StdGen [a]
-getShuffled l = undefined
+getShuffled l = do
+  g <- get
+  let (g',g'') = split g
+      l' = shuffle' l (length l) g'
+  put g''
+  return l'
 \end{code}
 
 ---
@@ -230,11 +250,25 @@ And now we're ready to implement a random maze generator!
 \begin{code}
 -- attempt 1: create a maze with a single "tunnel"
 genMazeSimple :: MazeDims -> State StdGen Maze
-genMazeSimple dims = undefined
+genMazeSimple dims = gen (emptyMaze dims) (1,1)
+  where gen mz@(Maze _ _ cmap) currLoc = do
+          neighbors <- getShuffled $ adjLocs dims currLoc
+          let (nextLoc:_) = neighbors
+          if nextLoc `member` cmap
+            then return mz
+            else gen (openWall currLoc nextLoc mz) nextLoc
+
 
 -- maze generator using recursive backtracking
 genMaze :: MazeDims -> State StdGen Maze
-genMaze dims = undefined
+genMaze dims = gen (emptyMaze dims) (1,1)
+  where gen mz currLoc = do
+          neighbors <- getShuffled $ adjLocs dims currLoc
+          foldM (\mz'@(Maze _ _ cmap) nextLoc -> 
+            if nextLoc `member` cmap
+              then return mz'
+              else gen (openWall currLoc nextLoc mz') nextLoc)
+            mz neighbors
 
 -- convenience function for creating a random maze from the global RNG
 randomMaze :: MazeDims -> IO Maze
@@ -261,17 +295,17 @@ A search strategy should avoid re-visiting nodes, and address the following:
 
   - is a given node the goal node?
 
-    goal :: ?
+    goal :: a -> Bool
   
 
   - what node(s) are adjacent to / reachable from the given one?
 
-    adj :: ?
+    adj/succ :: a -> [a]
 
 
   - how do we combine newly discovered nodes with other unvisited ones?
 
-    comb :: ?
+    comb :: [a] -> [a] -> [a]
 
 
 
@@ -283,7 +317,21 @@ search :: (Eq a, Show a) =>
           -> ([a] -> [a] -> [a])
           -> [a] -> [a] 
           -> Maybe a
-search goal adj comb unvisited visited = undefined
+search goal adj comb unvisited visited
+  | null unvisited = Nothing
+  | goal (head unvisited) = Just $ head unvisited
+  | otherwise = debug (head unvisited) $ search goal adj comb 
+                       (nub $ (adj (head unvisited)) `comb` (tail unvisited))
+                       (head unvisited : visited)
+
+searchNumTree :: Integer -> Maybe Integer
+searchNumTree n = 
+  search 
+    (==n)
+    (\m -> [2*m, 2*m+1])
+    (flip (++))
+    [1]
+    []
 
 -- convenience function for tracing search execution
 debug :: Show a => a -> b -> b
@@ -303,10 +351,10 @@ debug x y = unsafePerformIO clearScreen `seq`
 
 \begin{code}
 dfs :: (Eq a, Show a) => (a -> Bool) -> (a -> [a]) -> a -> Maybe a
-dfs goal succ start = undefined
+dfs goal succ start = search goal succ (++) [start] []
 
 bfs :: (Eq a, Show a) => (a -> Bool) -> (a -> [a]) -> a -> Maybe a
-bfs goal succ start = undefined
+bfs goal succ start = search goal succ (flip (++)) [start] []
 \end{code}
 
 
@@ -314,7 +362,10 @@ Let's solve our maze using uninformed search:
 
 \begin{code}
 solveMaze :: Maze -> Maybe Maze
-solveMaze mz@(Maze (w,h) _ _) = undefined
+solveMaze mz@(Maze (w,h) _ _) = 
+  dfs (\(Maze _ path@((x,y):_) _) -> (x == w && y == h))
+      nextPaths
+      (mz { mazePath = [(1,1)] })
 
 -- given a maze with a non-empty path, return a list of mazes, each of
 -- which extends the path by one location (based on the adjacency map)
@@ -353,7 +404,13 @@ bestFirstSearch :: (Eq a, Show a, Ord b) =>
                    -> (a -> [a])
                    -> (a -> b) 
                    -> a -> Maybe a
-bestFirstSearch goal succ cost start = undefined
+bestFirstSearch goal succ cost start = 
+  search
+    goal
+    succ
+    (\l1 l2 -> sortOn cost $ nub $ l1 ++ l2)
+    [start]
+    []
 \end{code}
 
 
@@ -377,7 +434,7 @@ maze thus far. Let's write it:
 
 \begin{code}
 bfsSolveMaze :: Maze -> Maybe Maze
-bfsSolveMaze = undefined
+bfsSolveMaze = solveMaze' (\(Maze _ path _ ) -> length path)
 \end{code}
 
 
@@ -390,7 +447,8 @@ estimate of the remaining distance to the exit as a cost function:
 
 \begin{code}
 bfsSolveMaze' :: Maze -> Maybe Maze
-bfsSolveMaze' mz@(Maze (w,h) _ _) = undefined
+bfsSolveMaze' mz@(Maze (w,h) _ _) = 
+  solveMaze' (\(Maze _ path@((x,y):_) _) -> (w-x)+(h-y)) mz
 \end{code}
 
 The strategy above is *greedy*. How would it perform on the following maze?
